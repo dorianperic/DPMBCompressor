@@ -167,26 +167,8 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-
-    //// Slanje postavki kompresora kompresoru putem pokazivaca
-    //compressor.setAttack(attack->get());
-    //compressor.setRelease(release->get());
-    //compressor.setThreshold(threshold->get());
-    //compressor.setRatio(ratio->getCurrentChoiceName().getFloatValue());
-
-
-    //// Deklaracija bloka koji se prosljedjuje kompresoru kroz context
-    //auto block = juce::dsp::AudioBlock<float>(buffer);
-    //auto context = juce::dsp::ProcessContextReplacing<float>(block);
-
-    //// Bypass botun
-    //context.isBypassed = bypassed->get();
-
-    //compressor.process(context);
-
     compressor.updateCompressorSettings();
     compressor.process(buffer);
-
 }
 
 //==============================================================================

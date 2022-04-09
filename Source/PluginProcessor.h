@@ -23,6 +23,7 @@ struct CompressorBand
     }
 
     void updateCompressorSettings() {
+        // Slanje postavki kompresora kompresoru putem pokazivaca
         compressor.setAttack(attack->get());
         compressor.setRelease(release->get());
         compressor.setThreshold(threshold->get());
@@ -94,15 +95,6 @@ public:
     APVTS apvts{*this, nullptr, "Parameters", createParameterLayout()};
 
 private:
-
-    //juce::dsp::Compressor<float> compressor;
-
-    //// Cash za parametre kompresora
-    //juce::AudioParameterFloat* attack{ nullptr };
-    //juce::AudioParameterFloat* release{ nullptr };
-    //juce::AudioParameterFloat* threshold{ nullptr };
-    //juce::AudioParameterChoice* ratio{ nullptr };
-    //juce::AudioParameterBool* bypassed{ nullptr };
 
     CompressorBand compressor;
 
