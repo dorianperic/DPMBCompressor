@@ -23,20 +23,20 @@ DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
 #endif
 {
     // Cashiranje postavki kompresora sa osiguranjem
-    attack = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Attack"));
-    jassert(attack != nullptr);
+    compressor.attack = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Attack"));
+    jassert(compressor.attack != nullptr);
 
-    release = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Release"));
-    jassert(release != nullptr);
+    compressor.release = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Release"));
+    jassert(compressor.release != nullptr);
     
-    threshold = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Threshold"));
-    jassert(threshold != nullptr);
+    compressor.threshold = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("Threshold"));
+    jassert(compressor.threshold != nullptr);
     
-    ratio = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter("Ratio"));
-    jassert(ratio != nullptr);
+    compressor.ratio = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter("Ratio"));
+    jassert(compressor.ratio != nullptr);
 
-    bypassed = dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter("Bypassed"));
-    jassert(bypassed != nullptr);
+    compressor.bypassed = dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter("Bypassed"));
+    jassert(compressor.bypassed != nullptr);
 
 }
 
@@ -168,24 +168,25 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         buffer.clear (i, 0, buffer.getNumSamples());
 
 
-    // Slanje postavki kompresora kompresoru putem pokazivaca
-    compressor.setAttack(attack->get());
-    compressor.setRelease(release->get());
-    compressor.setThreshold(threshold->get());
-    compressor.setRatio(ratio->getCurrentChoiceName().getFloatValue());
+    //// Slanje postavki kompresora kompresoru putem pokazivaca
+    //compressor.setAttack(attack->get());
+    //compressor.setRelease(release->get());
+    //compressor.setThreshold(threshold->get());
+    //compressor.setRatio(ratio->getCurrentChoiceName().getFloatValue());
 
 
-    // Deklaracija bloka koji se prosljedjuje kompresoru kroz context
-    auto block = juce::dsp::AudioBlock<float>(buffer);
-    auto context = juce::dsp::ProcessContextReplacing<float>(block);
+    //// Deklaracija bloka koji se prosljedjuje kompresoru kroz context
+    //auto block = juce::dsp::AudioBlock<float>(buffer);
+    //auto context = juce::dsp::ProcessContextReplacing<float>(block);
 
-    // Bypass botun
-    context.isBypassed = bypassed->get();
+    //// Bypass botun
+    //context.isBypassed = bypassed->get();
 
+    //compressor.process(context);
 
+    compressor.updateCompressorSettings();
+    compressor.process(buffer);
 
-
-    compressor.process(context);
 }
 
 //==============================================================================
