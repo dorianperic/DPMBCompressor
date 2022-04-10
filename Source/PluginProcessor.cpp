@@ -25,7 +25,7 @@ DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
     using namespace Params;
     const auto& params = GetParams();
     
-    // Cashiranje postavki kompresora sa osiguranjem
+
     // U lamda f-ma compiler zbog auto flaga sam vadi tip varijable
     auto floatHelper = [&apvts = this->apvts, &params](auto& param, const auto& paramName) {
         param = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter(params.at(paramName)));
@@ -40,13 +40,16 @@ DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
         jassert(param != nullptr);
     };
 
+    // Cashiranje postavki kompresora sa osiguranjem
     floatHelper(compressor.attack, Names::Attack_Low_Band);
     floatHelper(compressor.release, Names::Release_Low_Band);
     floatHelper(compressor.threshold, Names::Threshold_Low_Band);
-
     choiceHelper(compressor.ratio, Names::Ratio_Low_Band);
-
     boolHelper(compressor.bypassed, Names::Bypassed_Low_Band);
+    floatHelper(lowCrossover, Names::Low_Mid_Crossover_Freq);
+
+    LP.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
+    HP.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
 
 }
 
@@ -128,6 +131,14 @@ void DPMBCompressorAudioProcessor::prepareToPlay (double sampleRate, int samples
     spec.sampleRate = sampleRate;
 
     compressor.prepare(spec);
+
+    LP.prepare(spec);
+    HP.prepare(spec);
+
+    for (auto& buffer : filterBuffers)
+    {
+        buffer.setSize(spec.numChannels, samplesPerBlock);
+    }
 }
 
 void DPMBCompressorAudioProcessor::releaseResources()
@@ -177,8 +188,46 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    compressor.updateCompressorSettings();
-    compressor.process(buffer);
+    //compressor.updateCompressorSettings();
+    //compressor.process(buffer);
+
+    for (auto& fb : filterBuffers)
+    {
+        fb = buffer;
+    }
+
+    auto cutoff = lowCrossover->get();
+    LP.setCutoffFrequency(cutoff);
+    HP.setCutoffFrequency(cutoff);
+
+    // Dva blocka za low i mid
+    auto filterBuffer0Block = juce::dsp::AudioBlock<float>(filterBuffers[0]);
+    auto filterBuffer1Block = juce::dsp::AudioBlock<float>(filterBuffers[1]);
+
+
+    // Dva contexta za low i mid
+    auto filterBuffer0Context = juce::dsp::ProcessContextReplacing<float>(filterBuffer0Block);
+    auto filterBuffer1Context = juce::dsp::ProcessContextReplacing<float>(filterBuffer1Block);
+
+    LP.process(filterBuffer0Context);
+    HP.process(filterBuffer1Context);
+
+    auto numSamples = buffer.getNumSamples();
+    auto numChannels = buffer.getNumChannels();
+
+    buffer.clear();
+
+    // Lamda f-ja  vidi kasnije 
+    auto addFilterBand = [nc = numChannels, ns = numSamples](auto& inputBuffer, const auto& source) {
+
+        for (auto i = 0; i < nc; ++i) {
+            inputBuffer.addFrom(i, 0, source, i, 0, ns);
+        }
+    };
+
+    addFilterBand(buffer, filterBuffers[0]);
+    addFilterBand(buffer, filterBuffers[1]);
+
 }
 
 //==============================================================================
@@ -258,6 +307,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout DPMBCompressorAudioProcessor
     layout.add(std::make_unique<AudioParameterBool>(params.at(Names::Bypassed_Low_Band),
                                                     params.at(Names::Bypassed_Low_Band),
                                                     false));
+
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Low_Mid_Crossover_Freq),
+                                                       params.at(Names::Low_Mid_Crossover_Freq),
+                                                       NormalisableRange<float>(20, 20000, 1, 1),
+                                                       500));
+
+
+
 
     return layout;
 }
