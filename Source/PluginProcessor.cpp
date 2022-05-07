@@ -61,7 +61,7 @@ DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
     HP2.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
 
     invAP1.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
-    invAP1.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
+    invAP2.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
 
 
 }
