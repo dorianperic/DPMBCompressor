@@ -60,8 +60,8 @@ DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
     LP2.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
     HP2.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
 
-    invAP1.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
-    invAP2.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
+    //invAP1.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
+    //invAP2.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
 
 
 }
@@ -153,10 +153,10 @@ void DPMBCompressorAudioProcessor::prepareToPlay (double sampleRate, int samples
     LP2.prepare(spec);
     HP2.prepare(spec);
 
-    invAP1.prepare(spec);
-    invAP2.prepare(spec);
+    //invAP1.prepare(spec);
+    //invAP2.prepare(spec);
 
-    invAPBuffer.setSize(spec.numChannels, samplesPerBlock);
+    //invAPBuffer.setSize(spec.numChannels, samplesPerBlock);
 
     for (auto& buffer : filterBuffers)
     {
@@ -219,18 +219,18 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         fb = buffer;
     }
 
-    invAPBuffer = buffer;
+    //invAPBuffer = buffer;
 
     auto lowMidCutoffFreq = lowMidCrossover->get();
     LP1.setCutoffFrequency(lowMidCutoffFreq);
     HP1.setCutoffFrequency(lowMidCutoffFreq);
-    invAP1.setCutoffFrequency(lowMidCutoffFreq);
+    //invAP1.setCutoffFrequency(lowMidCutoffFreq);
 
     auto midHighCutoffFreq = midHighCrossover->get();
     AP2.setCutoffFrequency(midHighCutoffFreq);
     LP2.setCutoffFrequency(midHighCutoffFreq);
     HP2.setCutoffFrequency(midHighCutoffFreq);
-    invAP2.setCutoffFrequency(midHighCutoffFreq);
+    //invAP2.setCutoffFrequency(midHighCutoffFreq);
 
 
     // Tri blocka za low,mid i high
@@ -254,18 +254,18 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     
     HP2.process(filterBuffer2Context);
 
-    auto invAPBlock = juce::dsp::AudioBlock<float>(invAPBuffer);
-    auto invAPContext = juce::dsp::ProcessContextReplacing<float>(invAPBlock);
+    //auto invAPBlock = juce::dsp::AudioBlock<float>(invAPBuffer);
+    //auto invAPContext = juce::dsp::ProcessContextReplacing<float>(invAPBlock);
 
-    invAP1.process(invAPContext);
-    invAP2.process(invAPContext);
+    //invAP1.process(invAPContext);
+    //invAP2.process(invAPContext);
 
     auto numSamples = buffer.getNumSamples();
     auto numChannels = buffer.getNumChannels();
 
-    //if (compressor.bypassed->get()) {
-    //    return;
-    //}
+    if (compressor.bypassed->get()) {
+        return;
+    }
 
     
 
@@ -282,6 +282,7 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     addFilterBand(buffer, filterBuffers[1]);
     addFilterBand(buffer, filterBuffers[2]);
 
+    /*
     if ( compressor.bypassed->get()) {
         
         for (auto ch = 0; ch < numChannels; ++ch) {
@@ -292,7 +293,7 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         
         addFilterBand(buffer, invAPBuffer);
     }
-    
+    */
     
 
 }
