@@ -41,13 +41,26 @@ DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
     };
 
     // Cashiranje postavki kompresora sa osiguranjem
-    floatHelper(compressor.attack, Names::Attack_Low_Band);
-    floatHelper(compressor.release, Names::Release_Low_Band);
-    floatHelper(compressor.threshold, Names::Threshold_Low_Band);
+    floatHelper(lowBandComp.attack, Names::Attack_Low_Band);
+    floatHelper(lowBandComp.release, Names::Release_Low_Band);
+    floatHelper(lowBandComp.threshold, Names::Threshold_Low_Band);
+
+    floatHelper(midBandComp.attack, Names::Attack_Mid_Band);
+    floatHelper(midBandComp.release, Names::Release_Mid_Band);
+    floatHelper(midBandComp.threshold, Names::Threshold_Mid_Band);
+
+    floatHelper(highBandComp.attack, Names::Attack_High_Band);
+    floatHelper(highBandComp.release, Names::Release_High_Band);
+    floatHelper(highBandComp.threshold, Names::Threshold_High_Band);
     
-    choiceHelper(compressor.ratio, Names::Ratio_Low_Band);
-    boolHelper(compressor.bypassed, Names::Bypassed_Low_Band);
-    
+    choiceHelper(lowBandComp.ratio, Names::Ratio_Low_Band);
+    choiceHelper(midBandComp.ratio, Names::Ratio_Mid_Band);
+    choiceHelper(highBandComp.ratio, Names::Ratio_High_Band);
+
+    boolHelper(lowBandComp.bypassed, Names::Bypassed_Low_Band);
+    boolHelper(midBandComp.bypassed, Names::Bypassed_Mid_Band);
+    boolHelper(highBandComp.bypassed, Names::Bypassed_High_Band);
+
     floatHelper(lowMidCrossover, Names::Low_Mid_Crossover_Freq);
     floatHelper(midHighCrossover, Names::Mid_High_Crossover_Freq);
 
@@ -143,7 +156,8 @@ void DPMBCompressorAudioProcessor::prepareToPlay (double sampleRate, int samples
     spec.numChannels = getTotalNumOutputChannels();
     spec.sampleRate = sampleRate;
 
-    compressor.prepare(spec);
+    for( auto& comp : compressors)
+        comp.prepare(spec);
 
     LP1.prepare(spec);
     HP1.prepare(spec);
@@ -211,7 +225,9 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    //compressor.updateCompressorSettings();
+    for( auto& compressor : compressors)
+        compressor.updateCompressorSettings();
+
     //compressor.process(buffer);
 
     for (auto& fb : filterBuffers)
@@ -254,20 +270,12 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     
     HP2.process(filterBuffer2Context);
 
-    //auto invAPBlock = juce::dsp::AudioBlock<float>(invAPBuffer);
-    //auto invAPContext = juce::dsp::ProcessContextReplacing<float>(invAPBlock);
-
-    //invAP1.process(invAPContext);
-    //invAP2.process(invAPContext);
+    for (size_t i = 0; i < filterBuffers.size(); ++i) {
+        compressors[i].process(filterBuffers[i]);
+    }
 
     auto numSamples = buffer.getNumSamples();
     auto numChannels = buffer.getNumChannels();
-
-    if (compressor.bypassed->get()) {
-        return;
-    }
-
-    
 
     buffer.clear();
 
@@ -282,19 +290,6 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     addFilterBand(buffer, filterBuffers[1]);
     addFilterBand(buffer, filterBuffers[2]);
 
-    /*
-    if ( compressor.bypassed->get()) {
-        
-        for (auto ch = 0; ch < numChannels; ++ch) {
-            juce::FloatVectorOperations::multiply(invAPBuffer.getWritePointer(ch),
-                -1.f,
-                numSamples);
-        }
-        
-        addFilterBand(buffer, invAPBuffer);
-    }
-    */
-    
 
 }
 
@@ -346,19 +341,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout DPMBCompressorAudioProcessor
     #pragma region Threshold sliders
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_Low_Band),
-        params.at(Names::Threshold_Low_Band),
-        NormalisableRange<float>(-60, 12, 1, 1),
-        0));
+                                                     params.at(Names::Threshold_Low_Band),
+                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     0));
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_Mid_Band),
-        params.at(Names::Threshold_Mid_Band),
-        NormalisableRange<float>(-60, 12, 1, 1),
-        0));
+                                                     params.at(Names::Threshold_Mid_Band),
+                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     0));
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_High_Band),
-        params.at(Names::Threshold_High_Band),
-        NormalisableRange<float>(-60, 12, 1, 1),
-        0));
+                                                     params.at(Names::Threshold_High_Band),
+                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     0));
 
     #pragma endregion
 
