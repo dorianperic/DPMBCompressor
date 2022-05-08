@@ -343,20 +343,62 @@ juce::AudioProcessorValueTreeState::ParameterLayout DPMBCompressorAudioProcessor
 
     auto attackReleaseRange = NormalisableRange<float>(5, 500, 1, 1);
 
+    #pragma region Threshold sliders
+
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_Low_Band),
-                                                     params.at(Names::Threshold_Low_Band),
-                                                     NormalisableRange<float>(-60, 12, 1, 1),
-                                                     0));
+        params.at(Names::Threshold_Low_Band),
+        NormalisableRange<float>(-60, 12, 1, 1),
+        0));
+
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_Mid_Band),
+        params.at(Names::Threshold_Mid_Band),
+        NormalisableRange<float>(-60, 12, 1, 1),
+        0));
+
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_High_Band),
+        params.at(Names::Threshold_High_Band),
+        NormalisableRange<float>(-60, 12, 1, 1),
+        0));
+
+    #pragma endregion
+
+    #pragma region Attack sliders
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Attack_Low_Band),
                                                      params.at(Names::Attack_Low_Band),
                                                      attackReleaseRange,
                                                      50));
 
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Attack_Mid_Band),
+                                                     params.at(Names::Attack_Mid_Band),
+                                                     attackReleaseRange,
+                                                     50));
+
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Attack_High_Band),
+                                                     params.at(Names::Attack_High_Band),
+                                                     attackReleaseRange,
+                                                     50));
+
+    #pragma endregion
+
+    #pragma region Release sliders
+
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Release_Low_Band),
                                                      params.at(Names::Release_Low_Band),
                                                      attackReleaseRange,
                                                      250));
+
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Release_Mid_Band),
+                                                     params.at(Names::Release_Mid_Band),
+                                                     attackReleaseRange,
+                                                     250));
+
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Release_High_Band),
+                                                     params.at(Names::Release_High_Band),
+                                                     attackReleaseRange,
+                                                     250));
+
+    #pragma endregion
 
     auto choices = std::vector<double>{ 1, 1.5 , 2 ,3 ,4 ,5 ,6 ,7 ,8, 9, 10, 15, 20, 50 ,100 };
 
@@ -367,27 +409,54 @@ juce::AudioProcessorValueTreeState::ParameterLayout DPMBCompressorAudioProcessor
         sa.add(juce::String(choice, 1));
     }
 
+    #pragma region Ratio sliders
+
     layout.add(std::make_unique<AudioParameterChoice>(params.at(Names::Ratio_Low_Band),
                                                       params.at(Names::Ratio_Low_Band),
                                                       sa,
                                                       3));
 
+    layout.add(std::make_unique<AudioParameterChoice>(params.at(Names::Ratio_Mid_Band),
+                                                      params.at(Names::Ratio_Mid_Band),
+                                                      sa,
+                                                      3));
+
+    layout.add(std::make_unique<AudioParameterChoice>(params.at(Names::Ratio_High_Band),
+                                                      params.at(Names::Ratio_High_Band),
+                                                      sa,
+                                                      3));
+
+    #pragma endregion
+
+    #pragma region Bypass buttons
+
     layout.add(std::make_unique<AudioParameterBool>(params.at(Names::Bypassed_Low_Band),
                                                     params.at(Names::Bypassed_Low_Band),
                                                     false));
+    
+    layout.add(std::make_unique<AudioParameterBool>(params.at(Names::Bypassed_Mid_Band),
+                                                    params.at(Names::Bypassed_Mid_Band),
+                                                    false));
+
+    layout.add(std::make_unique<AudioParameterBool>(params.at(Names::Bypassed_High_Band),
+                                                    params.at(Names::Bypassed_High_Band),
+                                                    false));
+
+    #pragma endregion
+
+    #pragma region Crossover freqs
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Low_Mid_Crossover_Freq),
-                                                       params.at(Names::Low_Mid_Crossover_Freq),
-                                                       NormalisableRange<float>(20, 999, 1, 1),
-                                                       400));
+                                                     params.at(Names::Low_Mid_Crossover_Freq),
+                                                     NormalisableRange<float>(20, 999, 1, 1),
+                                                     400));
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Mid_High_Crossover_Freq),
                                                      params.at(Names::Mid_High_Crossover_Freq),
                                                      NormalisableRange<float>(1000, 20000, 1, 1),
                                                      2000));
 
-
-
+    #pragma endregion
 
 
     return layout;
