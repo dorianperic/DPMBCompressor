@@ -354,8 +354,8 @@ bool DPMBCompressorAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* DPMBCompressorAudioProcessor::createEditor()
 {
-    //return new DPMBCompressorAudioProcessorEditor (*this);
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new DPMBCompressorAudioProcessorEditor (*this);
+    //return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
