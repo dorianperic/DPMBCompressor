@@ -72,6 +72,9 @@ DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
     floatHelper(lowMidCrossover, Names::Low_Mid_Crossover_Freq);
     floatHelper(midHighCrossover, Names::Mid_High_Crossover_Freq);
 
+    floatHelper(inputGainParam, Names::Gain_In);
+    floatHelper(outputGainParam, Names::Gain_Out);
+
 
     LP1.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
     HP1.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
@@ -180,6 +183,12 @@ void DPMBCompressorAudioProcessor::prepareToPlay (double sampleRate, int samples
 
     //invAPBuffer.setSize(spec.numChannels, samplesPerBlock);
 
+    inputGain.prepare(spec);
+    outputGain.prepare(spec);
+
+    inputGain.setRampDurationSeconds(0.05);     //50 ms (sve manje od ovoga cini devijacije zvuka)
+    outputGain.setRampDurationSeconds(0.05);
+
     for (auto& buffer : filterBuffers)
     {
         buffer.setSize(spec.numChannels, samplesPerBlock);
@@ -218,6 +227,54 @@ bool DPMBCompressorAudioProcessor::isBusesLayoutSupported (const BusesLayout& la
 }
 #endif
 
+void DPMBCompressorAudioProcessor::updateState() 
+{
+    for (auto& compressor : compressors)
+        compressor.updateCompressorSettings();
+   
+    auto midHighCutoffFreq = midHighCrossover->get();
+    AP2.setCutoffFrequency(midHighCutoffFreq);
+    LP2.setCutoffFrequency(midHighCutoffFreq);
+    HP2.setCutoffFrequency(midHighCutoffFreq);
+
+    auto lowMidCutoffFreq = lowMidCrossover->get();
+    LP1.setCutoffFrequency(lowMidCutoffFreq);
+    HP1.setCutoffFrequency(lowMidCutoffFreq);
+
+    inputGain.setGainDecibels(inputGainParam->get());
+    outputGain.setGainDecibels(outputGainParam->get());
+
+}
+
+void DPMBCompressorAudioProcessor::splitBands(const juce::AudioBuffer<float> &inputBuffer)
+{
+    for (auto& fb : filterBuffers)
+    {
+        fb = inputBuffer;
+    }
+
+    // Tri blocka za low,mid i high
+    auto filterBuffer0Block = juce::dsp::AudioBlock<float>(filterBuffers[0]);
+    auto filterBuffer1Block = juce::dsp::AudioBlock<float>(filterBuffers[1]);
+    auto filterBuffer2Block = juce::dsp::AudioBlock<float>(filterBuffers[2]);
+
+    // Tri contexta za low,mid i high
+    auto filterBuffer0Context = juce::dsp::ProcessContextReplacing<float>(filterBuffer0Block);
+    auto filterBuffer1Context = juce::dsp::ProcessContextReplacing<float>(filterBuffer1Block);
+    auto filterBuffer2Context = juce::dsp::ProcessContextReplacing<float>(filterBuffer2Block);
+
+    // Low band filtering sa AllPass delayom
+    LP1.process(filterBuffer0Context);
+    AP2.process(filterBuffer0Context);
+
+    // Mid i High band filtering 
+    HP1.process(filterBuffer1Context);
+    filterBuffers[2] = filterBuffers[1];
+    LP2.process(filterBuffer1Context);
+
+    HP2.process(filterBuffer2Context);
+}
+
 void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -233,50 +290,11 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    for( auto& compressor : compressors)
-        compressor.updateCompressorSettings();
+    updateState();
+    applyGain(buffer, inputGain);
+    splitBands(buffer);
 
-    //compressor.process(buffer);
-
-    for (auto& fb : filterBuffers)
-    {
-        fb = buffer;
-    }
-
-    //invAPBuffer = buffer;
-
-    auto lowMidCutoffFreq = lowMidCrossover->get();
-    LP1.setCutoffFrequency(lowMidCutoffFreq);
-    HP1.setCutoffFrequency(lowMidCutoffFreq);
-    //invAP1.setCutoffFrequency(lowMidCutoffFreq);
-
-    auto midHighCutoffFreq = midHighCrossover->get();
-    AP2.setCutoffFrequency(midHighCutoffFreq);
-    LP2.setCutoffFrequency(midHighCutoffFreq);
-    HP2.setCutoffFrequency(midHighCutoffFreq);
-    //invAP2.setCutoffFrequency(midHighCutoffFreq);
-
-
-    // Tri blocka za low,mid i high
-    auto filterBuffer0Block = juce::dsp::AudioBlock<float>(filterBuffers[0]);
-    auto filterBuffer1Block = juce::dsp::AudioBlock<float>(filterBuffers[1]);
-    auto filterBuffer2Block = juce::dsp::AudioBlock<float>(filterBuffers[2]);
-
-    // Tri contexta za low,mid i high
-    auto filterBuffer0Context = juce::dsp::ProcessContextReplacing<float>(filterBuffer0Block);
-    auto filterBuffer1Context = juce::dsp::ProcessContextReplacing<float>(filterBuffer1Block);
-    auto filterBuffer2Context = juce::dsp::ProcessContextReplacing<float>(filterBuffer2Block);
-
-    // Procesiranje contexta
-    LP1.process(filterBuffer0Context);
-    AP2.process(filterBuffer0Context);
-
-    HP1.process(filterBuffer1Context);
-    filterBuffers[2] = filterBuffers[1];
-    LP2.process(filterBuffer1Context);
-    
-    HP2.process(filterBuffer2Context);
-
+    // Kompresija
     for (size_t i = 0; i < filterBuffers.size(); ++i) {
         compressors[i].process(filterBuffers[i]);
     }
@@ -293,6 +311,7 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         }
     };
 
+    // Provjera solo boola
     auto bandsAreSoloed = false;
     for (auto& comp : compressors) {
         if (comp.solo->get())
@@ -306,6 +325,7 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     //addFilterBand(buffer, filterBuffers[1]);
     //addFilterBand(buffer, filterBuffers[2]);
 
+    // Solo & mute handling
     if (bandsAreSoloed) {
         for (size_t i = 0; i < compressors.size(); ++i) {
             auto& comp = compressors[i];
@@ -322,6 +342,8 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
         }
     }
+
+    applyGain(buffer, outputGain);
 }
 
 //==============================================================================
@@ -368,22 +390,39 @@ juce::AudioProcessorValueTreeState::ParameterLayout DPMBCompressorAudioProcessor
     const auto& params = GetParams();
 
     auto attackReleaseRange = NormalisableRange<float>(5, 500, 1, 1);
+    auto gainRange = NormalisableRange<float>(-24.f , 24.f, 0.5f, 1.f);
+    auto thresholdRange = NormalisableRange<float>(-60, 12, 1, 1);
+
+    #pragma region Gain sliders
+
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Gain_In),
+                                                     params.at(Names::Gain_In),
+                                                     gainRange,
+                                                     0));
+    
+    layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Gain_Out),
+                                                     params.at(Names::Gain_Out),
+                                                     gainRange,
+                                                     0));
+    
+
+    #pragma endregion
 
     #pragma region Threshold sliders
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_Low_Band),
                                                      params.at(Names::Threshold_Low_Band),
-                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     thresholdRange,
                                                      0));
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_Mid_Band),
                                                      params.at(Names::Threshold_Mid_Band),
-                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     thresholdRange,
                                                      0));
 
     layout.add(std::make_unique<AudioParameterFloat>(params.at(Names::Threshold_High_Band),
                                                      params.at(Names::Threshold_High_Band),
-                                                     NormalisableRange<float>(-60, 12, 1, 1),
+                                                     thresholdRange,
                                                      0));
 
     #pragma endregion
