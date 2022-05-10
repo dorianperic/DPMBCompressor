@@ -343,12 +343,14 @@ ratioSlider(nullptr, "")
     addLabelPairs(releaseSlider.labels, getParamHelper(Names::Release_Mid_Band), "ms");
     addLabelPairs(thresholdSlider.labels, getParamHelper(Names::Threshold_Mid_Band), "dB");
 
+    // Ratio slider konfiguracija
     ratioSlider.labels.add({ 0.f, "1:1" });
     auto ratioParam = dynamic_cast<juce::AudioParameterChoice*>(&getParamHelper(Names::Ratio_Mid_Band));
     ratioSlider.labels.add({ 1.0f, 
         juce::String(ratioParam->choices.getReference(ratioParam->choices.size() - 1).getIntValue()) + ":1"});
 
 
+    // Lamda attachment helper init
     auto makeAttachmentHelper = [&params, &apvts = this->apvts](auto& attachment, const auto& name, auto& slider) {
         makeAttachment(attachment, apvts, params, name, slider);
     };
@@ -386,6 +388,19 @@ ratioSlider(nullptr, "")
     makeAttachmentHelper(soloButtonAttachment, Names::Solo_Mid_Band, soloButton);
     makeAttachmentHelper(muteButtonAttachment, Names::Mute_Mid_Band, muteButton);
 
+    lowBand.setName("Low");
+    midBand.setName("Mid");
+    highBand.setName("High");
+
+    // Handle za selektiranje samo jednog
+    lowBand.setRadioGroupId(1);
+    midBand.setRadioGroupId(1);
+    highBand.setRadioGroupId(1);
+
+    addAndMakeVisible(lowBand);
+    addAndMakeVisible(midBand);
+    addAndMakeVisible(highBand);
+
 }
 
 void CompressorBandControls::resized() {
@@ -410,9 +425,9 @@ void CompressorBandControls::resized() {
         return flexBox;
     };
 
-    // Kreiranje button-a za bypass mute i solo
+    // Kreiranje button-a svih botuna sa helperom
     auto bandButtonControlBox = createBandButtonControlBox({ &bypassButton,&soloButton,&muteButton });
-
+    auto bandSelectControlBox = createBandButtonControlBox({ &lowBand,&midBand,&highBand });
 
     FlexBox flexBox;
     flexBox.flexDirection = FlexBox::Direction::row;
@@ -422,7 +437,9 @@ void CompressorBandControls::resized() {
     auto endCap = FlexItem().withWidth(6);
 
     // Dodavanje svih kontrola u flexBox
-    flexBox.items.add(endCap);
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(bandSelectControlBox).withWidth(50));
+    flexBox.items.add(spacer);
     flexBox.items.add(FlexItem(attackSlider).withFlex(1.f));
     flexBox.items.add(spacer);
     flexBox.items.add(FlexItem(releaseSlider).withFlex(1.f));
