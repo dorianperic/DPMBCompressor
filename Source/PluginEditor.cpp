@@ -150,6 +150,25 @@ void LookAndFeel::drawToggleButton(juce::Graphics& g,
 
         g.strokePath(analyzerButton->randomPath, PathStrokeType(1.f));
     }
+    else
+    {
+        // Toggle button style 
+
+        auto bounds = toggleButton.getLocalBounds().reduced(2);
+
+        auto buttonIsOn = toggleButton.getToggleState();
+
+        const int cornerSize = 4;
+
+        g.setColour(buttonIsOn ? juce::Colours::white : juce::Colours::black);
+        g.fillRoundedRectangle(bounds.toFloat(), cornerSize);
+
+        g.setColour(buttonIsOn ? juce::Colours::black : juce::Colours::white);
+        g.drawRoundedRectangle(bounds.toFloat(), cornerSize, 1);
+        g.drawFittedText(toggleButton.getName(), bounds, juce::Justification::centred, 1);
+
+    }
+
 }
 //==============================================================================
 void RotarySliderWithLabels::paint(juce::Graphics& g)
@@ -334,7 +353,7 @@ ratioSlider(nullptr, "")
         makeAttachment(attachment, apvts, params, name, slider);
     };
 
-    // Povezivanje sa DSP-om
+    // Povezivanje attack-a,release-a,threshold-a i ratio-a sa DSP-om
     makeAttachmentHelper(attackSliderAttachment,
         Names::Attack_Mid_Band,
         attackSlider);
@@ -353,11 +372,47 @@ ratioSlider(nullptr, "")
     addAndMakeVisible(releaseSlider);
     addAndMakeVisible(thresholdSlider);
     addAndMakeVisible(ratioSlider);
+
+    bypassButton.setName("X");
+    soloButton.setName("S");
+    muteButton.setName("M");
+
+    addAndMakeVisible(bypassButton);
+    addAndMakeVisible(soloButton);
+    addAndMakeVisible(muteButton);
+
+    // Povezivanje solo,mute i bypass-a sa DSP-om
+    makeAttachmentHelper(bypassButtonAttachment, Names::Bypassed_Mid_Band, bypassButton);
+    makeAttachmentHelper(soloButtonAttachment, Names::Solo_Mid_Band, soloButton);
+    makeAttachmentHelper(muteButtonAttachment, Names::Mute_Mid_Band, muteButton);
+
 }
 
 void CompressorBandControls::resized() {
     auto bounds = getLocalBounds().reduced(5);
     using namespace juce;
+
+    // Lamda helper za lijeve i desne button-e
+    auto createBandButtonControlBox = [](std::vector<Component*> comps) {
+        FlexBox flexBox;
+        flexBox.flexDirection = FlexBox::Direction::column;
+        flexBox.flexWrap = FlexBox::Wrap::noWrap;
+
+        auto spacer = FlexItem().withHeight(2);
+
+        // Dodavanje button-a sa razmacima
+        for (auto* comp : comps) {
+            flexBox.items.add(spacer);
+            flexBox.items.add(FlexItem(*comp).withFlex(1.f));
+        }
+        flexBox.items.add(spacer);
+
+        return flexBox;
+    };
+
+    // Kreiranje button-a za bypass mute i solo
+    auto bandButtonControlBox = createBandButtonControlBox({ &bypassButton,&soloButton,&muteButton });
+
 
     FlexBox flexBox;
     flexBox.flexDirection = FlexBox::Direction::row;
@@ -366,6 +421,7 @@ void CompressorBandControls::resized() {
     auto spacer = FlexItem().withWidth(4);
     auto endCap = FlexItem().withWidth(6);
 
+    // Dodavanje svih kontrola u flexBox
     flexBox.items.add(endCap);
     flexBox.items.add(FlexItem(attackSlider).withFlex(1.f));
     flexBox.items.add(spacer);
@@ -374,7 +430,10 @@ void CompressorBandControls::resized() {
     flexBox.items.add(FlexItem(thresholdSlider).withFlex(1.f));
     flexBox.items.add(spacer);
     flexBox.items.add(FlexItem(ratioSlider).withFlex(1.f));
-    flexBox.items.add(endCap);
+    //flexBox.items.add(endCap);
+    flexBox.items.add(spacer);
+    flexBox.items.add(FlexItem(bandButtonControlBox).withWidth(30));
+
 
     flexBox.performLayout(bounds);
 }
