@@ -332,6 +332,10 @@ ratioSlider(nullptr, "")
     addAndMakeVisible(thresholdSlider);
     addAndMakeVisible(ratioSlider);
 
+    bypassButton.addListener(this);
+    soloButton.addListener(this);
+    muteButton.addListener(this);
+
     bypassButton.setName("X");
     soloButton.setName("S");
     muteButton.setName("M");
@@ -369,6 +373,12 @@ ratioSlider(nullptr, "")
     addAndMakeVisible(highBand);
 }
 
+CompressorBandControls::~CompressorBandControls() {
+    bypassButton.removeListener(this);
+    soloButton.removeListener(this);
+    muteButton.removeListener(this);
+}
+
 void CompressorBandControls::resized() {
     auto bounds = getLocalBounds().reduced(5);
     using namespace juce;
@@ -400,7 +410,6 @@ void CompressorBandControls::resized() {
     flexBox.flexWrap = FlexBox::Wrap::noWrap;
 
     auto spacer = FlexItem().withWidth(4);
-    //auto endCap = FlexItem().withWidth(6);
 
     // Dodavanje svih kontrola u flexBox
     flexBox.items.add(spacer);
@@ -413,10 +422,8 @@ void CompressorBandControls::resized() {
     flexBox.items.add(FlexItem(thresholdSlider).withFlex(1.f));
     flexBox.items.add(spacer);
     flexBox.items.add(FlexItem(ratioSlider).withFlex(1.f));
-    //flexBox.items.add(endCap);
     flexBox.items.add(spacer);
     flexBox.items.add(FlexItem(bandButtonControlBox).withWidth(30));
-
 
     flexBox.performLayout(bounds);
 }
@@ -437,6 +444,34 @@ void drawModuleBackground(juce::Graphics& g,
 void CompressorBandControls::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds();
     drawModuleBackground(g, bounds);
+}
+
+void CompressorBandControls::buttonClicked(juce::Button *button) {
+    updateSliderEnablements();
+    updateSoloMuteBypassToggleStates(*button);
+}
+
+void CompressorBandControls::updateSliderEnablements() {
+    auto disabled = muteButton.getToggleState() || bypassButton.getToggleState();
+    
+    attackSlider.setEnabled(!disabled);
+    releaseSlider.setEnabled(!disabled);
+    thresholdSlider.setEnabled(!disabled);
+    ratioSlider.setEnabled(!disabled);
+}
+
+void CompressorBandControls::updateSoloMuteBypassToggleStates(juce::Button &clickedButton) {
+    // Handle za select jednog od mod button-a
+    if (&clickedButton == &soloButton && soloButton.getToggleState()) {
+        bypassButton.setToggleState(false, juce::NotificationType::sendNotification);
+        muteButton.setToggleState(false, juce::NotificationType::sendNotification);
+    }else if (&clickedButton == &muteButton && muteButton.getToggleState()) {
+        bypassButton.setToggleState(false, juce::NotificationType::sendNotification);
+        soloButton.setToggleState(false, juce::NotificationType::sendNotification);
+    }else if (&clickedButton == &bypassButton && bypassButton.getToggleState()) {
+        muteButton.setToggleState(false, juce::NotificationType::sendNotification);
+        soloButton.setToggleState(false, juce::NotificationType::sendNotification);
+    }
 }
 
 void CompressorBandControls::updateAttachments() {
@@ -557,8 +592,6 @@ void CompressorBandControls::updateAttachments() {
     makeAttachmentHelper(bypassButtonAttachment, names[Pos::Bypassed], bypassButton);
     makeAttachmentHelper(soloButtonAttachment, names[Pos::Solo], soloButton);
     makeAttachmentHelper(muteButtonAttachment, names[Pos::Mute], muteButton);
-
-
 }
 
 //==============================================================================
