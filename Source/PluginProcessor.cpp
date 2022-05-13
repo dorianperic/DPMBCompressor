@@ -8,6 +8,8 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "Params.h"
+#include "DSP/Params.h"
 
 //==============================================================================
 DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
@@ -83,10 +85,6 @@ DPMBCompressorAudioProcessor::DPMBCompressorAudioProcessor()
 
     LP2.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
     HP2.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
-
-    //invAP1.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
-    //invAP2.setType(juce::dsp::LinkwitzRileyFilterType::allpass);
-
 
 }
 
