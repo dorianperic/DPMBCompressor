@@ -11,6 +11,9 @@
 #include "CompressorBandControls.h"
 #include "../DSP/Params.h"
 #include "Utilities.h"
+#include <juce_audio_processors/format_types/juce_VST3PluginFormat.cpp>
+#include <juce_audio_processors/format_types/juce_VSTPluginFormat.cpp>
+#include <pluginterfaces/base/ipluginbase.h>
 
 
 CompressorBandControls::CompressorBandControls(juce::AudioProcessorValueTreeState& apv) :
@@ -29,17 +32,47 @@ CompressorBandControls::CompressorBandControls(juce::AudioProcessorValueTreeStat
     soloButton.addListener(this);
     muteButton.addListener(this);
 
+    // Postavljanje imena i boja botuna kontrole band-a
     bypassButton.setName("X");
+    bypassButton.setColour(juce::TextButton::ColourIds::buttonOnColourId,
+                           juce::Colours::yellow);
+    bypassButton.setColour(juce::TextButton::ColourIds::buttonColourId,
+                           juce::Colours::black);
+
     soloButton.setName("S");
+    soloButton.setColour(juce::TextButton::ColourIds::buttonOnColourId,
+                         juce::Colours::limegreen);
+    soloButton.setColour(juce::TextButton::ColourIds::buttonColourId,
+                         juce::Colours::black);
+    
     muteButton.setName("M");
+    muteButton.setColour(juce::TextButton::ColourIds::buttonOnColourId,
+                         juce::Colours::red);
+    muteButton.setColour(juce::TextButton::ColourIds::buttonColourId,
+                         juce::Colours::black);
 
     addAndMakeVisible(bypassButton);
     addAndMakeVisible(soloButton);
     addAndMakeVisible(muteButton);
 
+    // Postavljanje imena i boja botuna band-ova
     lowBand.setName("Low");
+    lowBand.setColour(juce::TextButton::ColourIds::buttonOnColourId,
+                      juce::Colours::grey);
+    lowBand.setColour(juce::TextButton::ColourIds::buttonColourId,
+                      juce::Colours::black);
+    
     midBand.setName("Mid");
+    midBand.setColour(juce::TextButton::ColourIds::buttonOnColourId,
+                      juce::Colours::grey);
+    midBand.setColour(juce::TextButton::ColourIds::buttonColourId,
+                      juce::Colours::black);
+
     highBand.setName("High");
+    highBand.setColour(juce::TextButton::ColourIds::buttonOnColourId,
+                      juce::Colours::grey);
+    highBand.setColour(juce::TextButton::ColourIds::buttonColourId,
+                      juce::Colours::black);
 
     // Handle za selektiranje samo jednog
     lowBand.setRadioGroupId(1);
@@ -60,6 +93,8 @@ CompressorBandControls::CompressorBandControls(juce::AudioProcessorValueTreeStat
     lowBand.setToggleState(true, juce::NotificationType::dontSendNotification);
 
     updateAttachments();
+    updateSliderEnablements();
+    updateBandSelectButtonStates();
 
     addAndMakeVisible(lowBand);
     addAndMakeVisible(midBand);
@@ -129,6 +164,75 @@ void CompressorBandControls::paint(juce::Graphics& g) {
 void CompressorBandControls::buttonClicked(juce::Button* button) {
     updateSliderEnablements();
     updateSoloMuteBypassToggleStates(*button);
+    updateActiveBandFillColors(*button);
+}
+
+void CompressorBandControls::updateActiveBandFillColors(juce::Button &clickedButton) {
+    // Uvik jedan band mora bit selectiran
+    jassert(activeBand != nullptr);
+        DBG("active band: " << activeBand->getName());
+
+    if (clickedButton.getToggleState() == false) {
+        // Botun odstisnut
+        resetActiveBandColors();
+    }
+    else {
+        // Handle za botun stisnunt
+        refreshBandButtonColors(*activeBand, clickedButton);
+    }
+}
+
+void CompressorBandControls::refreshBandButtonColors(juce::Button& band, juce::Button& colorSource) {
+    band.setColour(juce::TextButton::ColourIds::buttonOnColourId,
+                   colorSource.findColour(juce::TextButton::ColourIds::buttonOnColourId));
+    band.setColour(juce::TextButton::ColourIds::buttonColourId,
+                   colorSource.findColour(juce::TextButton::ColourIds::buttonOnColourId));
+    band.repaint();
+}
+
+void CompressorBandControls::resetActiveBandColors() {
+    activeBand->setColour(juce::TextButton::ColourIds::buttonOnColourId,
+                          juce::Colours::grey);
+    activeBand->setColour(juce::TextButton::ColourIds::buttonColourId,
+                          juce::Colours::black);
+    activeBand->repaint();
+}
+
+void CompressorBandControls::updateBandSelectButtonStates() {
+    using namespace Params;
+
+    std::vector<std::array<Names, 3>> paramsToCheck{
+        {Names::Solo_Low_Band, Names::Mute_Low_Band, Names::Bypassed_Low_Band},
+        {Names::Solo_Mid_Band, Names::Mute_Mid_Band, Names::Bypassed_Mid_Band},
+        {Names::Solo_High_Band, Names::Mute_High_Band, Names::Bypassed_High_Band}
+    };
+
+    const auto& params = GetParams();
+    auto paramHelper = [&params, this](const auto& name) {
+        return dynamic_cast<juce::AudioParameterBool*>(&getParam(apvts, params, name));
+    };
+
+    for (size_t i = 0; i < paramsToCheck.size(); ++i) {
+        auto& list = paramsToCheck[i];
+
+        auto* bandButton = (i == 0) ? &lowBand :
+                           (i == 1) ? &midBand :
+                                      &highBand;
+
+        if ( auto* solo = paramHelper(list[0]);
+            solo->get() ) 
+        {
+            refreshBandButtonColors(*bandButton, soloButton);
+        }
+        else if (auto* mute = paramHelper(list[1]);
+            mute->get()) {
+            refreshBandButtonColors(*bandButton, muteButton);
+        }
+        else if (auto* byp = paramHelper(list[2]);
+            byp->get()) {
+            refreshBandButtonColors(*bandButton, bypassButton);
+        }
+    }
 }
 
 void CompressorBandControls::updateSliderEnablements() {
@@ -175,6 +279,7 @@ void CompressorBandControls::updateAttachments() {
     using namespace Params;
     std::vector<Names> names;
 
+    // Switch za bandove
     switch (bandType) {
     case Low: {
         names = std::vector<Names>{
@@ -186,6 +291,9 @@ void CompressorBandControls::updateAttachments() {
             Names::Solo_Low_Band,
             Names::Bypassed_Low_Band
         };
+        
+        // Postavljanje pointera za odredit trenutno aktivni band
+        activeBand = &lowBand;
         break;
     }
     case Mid: {
@@ -198,6 +306,9 @@ void CompressorBandControls::updateAttachments() {
             Names::Solo_Mid_Band,
             Names::Bypassed_Mid_Band
         };
+
+        // Postavljanje pointera za odredit trenutno aktivni band
+        activeBand = &midBand;
         break;
     }
     case High: {
@@ -210,6 +321,8 @@ void CompressorBandControls::updateAttachments() {
             Names::Solo_High_Band,
             Names::Bypassed_High_Band
         };
+        // Postavljanje pointera za odredit trenutno aktivni band
+        activeBand = &highBand;
         break;
     }
     }
