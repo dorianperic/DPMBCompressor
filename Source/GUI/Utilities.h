@@ -77,8 +77,8 @@ void addLabelPairs(Labels& labels, const ParamType& param, const SuffixType& suf
 }
 
 juce::String getValString(const juce::RangedAudioParameter& param,
-    bool getLow,
-    juce::String suffix);
+                          bool getLow,
+                          juce::String suffix);
 
-void drawModuleBackground(juce::Graphics& g,
-    juce::Rectangle<int> bounds);
+juce::Rectangle<int> drawModuleBackground(juce::Graphics& g,
+                                          juce::Rectangle<int> bounds);
