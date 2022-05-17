@@ -191,6 +191,10 @@ void DPMBCompressorAudioProcessor::prepareToPlay (double sampleRate, int samples
     {
         buffer.setSize(spec.numChannels, samplesPerBlock);
     }
+
+    leftChannelFifo.prepare(samplesPerBlock);
+    rightChannelFifo.prepare(samplesPerBlock);
+    
 }
 
 void DPMBCompressorAudioProcessor::releaseResources()
@@ -289,7 +293,12 @@ void DPMBCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         buffer.clear (i, 0, buffer.getNumSamples());
 
     updateState();
+
+    leftChannelFifo.update(buffer);
+    rightChannelFifo.update(buffer);
+
     applyGain(buffer, inputGain);
+
     splitBands(buffer);
 
     // Kompresija
