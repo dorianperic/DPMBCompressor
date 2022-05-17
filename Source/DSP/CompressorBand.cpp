@@ -23,6 +23,8 @@ void CompressorBand::updateCompressorSettings() {
 }
 
 void CompressorBand::process(juce::AudioBuffer<float>& buffer) {
+    auto preRMS = computeRMSLevel(buffer);
+    
     // Deklaracija bloka koji se prosljedjuje kompresoru kroz context
     auto block = juce::dsp::AudioBlock<float>(buffer);
     auto context = juce::dsp::ProcessContextReplacing<float>(block);
@@ -31,4 +33,13 @@ void CompressorBand::process(juce::AudioBuffer<float>& buffer) {
     context.isBypassed = bypassed->get();
 
     compressor.process(context);
+
+    auto postRMS = computeRMSLevel(buffer);
+
+    auto converToDb = [](auto input) {
+        return juce::Decibels::gainToDecibels(input);
+    };
+
+    rmsInputLevelDb.store(converToDb(preRMS));
+    rmsOutputLevelDb.store(converToDb(postRMS));
 }

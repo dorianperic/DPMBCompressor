@@ -26,6 +26,8 @@ DPMBCompressorAudioProcessorEditor::DPMBCompressorAudioProcessorEditor (DPMBComp
 
 
     setSize (612, 510);
+
+    startTimerHz(60);
 }
 
 DPMBCompressorAudioProcessorEditor::~DPMBCompressorAudioProcessorEditor()
@@ -57,4 +59,17 @@ void DPMBCompressorAudioProcessorEditor::resized()
     bandControls.setBounds(bounds.removeFromBottom(135));
     analyzer.setBounds(bounds.removeFromTop(225));
     globalControls.setBounds(bounds);
+}
+
+void DPMBCompressorAudioProcessorEditor::timerCallback() {
+    std::vector<float> values{
+        audioProcessor.lowBandComp.getRmsInputLevelDb(),
+        audioProcessor.lowBandComp.getRmsOutputLevelDb(),
+        audioProcessor.midBandComp.getRmsInputLevelDb(),
+        audioProcessor.midBandComp.getRmsOutputLevelDb(),
+        audioProcessor.highBandComp.getRmsInputLevelDb(),
+        audioProcessor.highBandComp.getRmsOutputLevelDb(),
+    };
+
+    analyzer.update(values);
 }

@@ -21,7 +21,7 @@
 
 /**
 */
-class DPMBCompressorAudioProcessorEditor  : public juce::AudioProcessorEditor
+class DPMBCompressorAudioProcessorEditor  : public juce::AudioProcessorEditor, juce::Timer
 {
 public:
     DPMBCompressorAudioProcessorEditor (DPMBCompressorAudioProcessor&);
@@ -31,6 +31,7 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    void timerCallback() override;
 private:
 
     LookAndFeel lnf;
