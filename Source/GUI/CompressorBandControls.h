@@ -23,6 +23,7 @@ struct CompressorBandControls : juce::Component, juce::Button::Listener {
 
     void buttonClicked(juce::Button* button) override;
 
+    void toggleAllBands(bool shouldBeBypassed);
 private:
     juce::AudioProcessorValueTreeState& apvts;
 
