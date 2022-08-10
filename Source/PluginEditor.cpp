@@ -12,8 +12,8 @@
 
 ControlBar::ControlBar() {
     analyzerButton.setToggleState(true, juce::NotificationType::dontSendNotification);
+    
     addAndMakeVisible(analyzerButton);
-
     addAndMakeVisible(globalBypassButton);
 }
 
@@ -52,6 +52,7 @@ DPMBCompressorAudioProcessorEditor::DPMBCompressorAudioProcessorEditor (DPMBComp
     addAndMakeVisible(bandControls);
 
     setSize (612, 510);
+    //setSize (720, 600);
 
     startTimerHz(60);
 }

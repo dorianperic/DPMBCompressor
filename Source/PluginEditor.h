@@ -16,6 +16,8 @@
 #include "GUI/CompressorBandControls.h"
 #include "GUI/SpectrumAnalyzer.h"
 #include "GUI/CustomButtons.h"
+#include <include_juce_graphics.cpp>
+#include <juce_graphics/images/juce_Image.cpp>
 
 
 struct ControlBar : juce::Component {
@@ -24,6 +26,7 @@ struct ControlBar : juce::Component {
     
     AnalyzerButton analyzerButton;
     PowerButton globalBypassButton;
+    //Image compPic;
 };
 
 

@@ -17,6 +17,7 @@
               file="Source/DSP/SingleChannelSampleFifo.h"/>
       </GROUP>
       <GROUP id="{2F662C04-B722-2C60-7CB0-45D523BA7E92}" name="GUI">
+        <GROUP id="{B384E680-211C-6C7A-D082-E9C311435462}" name="Images"/>
         <FILE id="JlKfU9" name="AnalyzerPathGenerator.h" compile="0" resource="0"
               file="Source/GUI/AnalyzerPathGenerator.h"/>
         <FILE id="AyHopx" name="CompressorBandControls.cpp" compile="1" resource="0"
@@ -103,4 +104,7 @@
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
+  <LIVE_SETTINGS>
+    <WINDOWS/>
+  </LIVE_SETTINGS>
 </JUCERPROJECT>
